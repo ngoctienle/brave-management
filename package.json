@@ -5,10 +5,15 @@
   "author": "Ngoc Tien Le <hi@bravethinking.io>",
   "license": "MIT",
   "scripts": {
-    "start": "nodemon index.js"
+    "server": "nodemon index.js",
+    "client": "yarn --cwd client start",
+    "dev": "concurrently \"yarn server\" \"yarn client\""
   },
   "dependencies": {
     "json-server": "^0.17.1",
     "nodemon": "^2.0.20"
+  },
+  "devDependencies": {
+    "concurrently": "^7.6.0"
   }
 }
