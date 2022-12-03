@@ -7,7 +7,7 @@ interface Props {
 
 export default function MainLayout({ children }: Props) {
   return (
-    <div className='grid min-h-screen grid-cols-4'>
+    <div className='grid min-h-screen grid-cols-6'>
       <aside className='col-span-1' aria-label='Sidebar'>
         <div className='flex h-full flex-col overflow-y-auto bg-gray-100 py-4 px-3 shadow-lg'>
           <ul className='space-y-2'>
@@ -46,15 +46,9 @@ export default function MainLayout({ children }: Props) {
               </NavLink>
             </li>
           </ul>
-          <div className='mt-auto'>
-            ©️ Copyright{' '}
-            <a href='https://duthanhduoc.com' target='_blank' rel='noreferrer' className='text-cyan-500'>
-              duthanhduoc.com
-            </a>
-          </div>
         </div>
       </aside>
-      <main className='col-span-3 h-full py-4 px-3'>{children}</main>
+      <main className='col-span-5 h-full py-4 px-4'>{children}</main>
     </div>
   )
 }

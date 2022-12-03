@@ -34,11 +34,7 @@ function App() {
     }
   ])
 
-  return (
-    <div className='App'>
-      <MainLayout>{elements}</MainLayout>
-    </div>
-  )
+  return <MainLayout>{elements}</MainLayout>
 }
 
 export default App
