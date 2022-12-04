@@ -1,16 +1,17 @@
 import React, { useMemo, useState } from 'react'
-import { useMatch } from 'react-router-dom'
-import { useMutation } from '@tanstack/react-query'
+import { useMatch, useParams } from 'react-router-dom'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'react-toastify'
 
 import { Student } from 'types/students.type'
-import { addStudent } from 'apis/students.api'
+import { addStudent, editStudent, getStudentInfo } from 'apis/students.api'
 import { isAxiosError } from 'utils/hooks'
 
-type FormStateType = Omit<Student, 'id'>
+type FormStateType = Omit<Student, 'id'> | Student
 type FormError =
   | {
-      [key in keyof FormStateType]: string
-    }
+    [key in keyof FormStateType]: string
+  }
   | null
 const initialFormState: FormStateType = {
   email: '',
@@ -25,33 +26,60 @@ const initialFormState: FormStateType = {
 export default function AddStudent() {
   const [formState, setFormState] = useState<FormStateType>(initialFormState)
   const addMatch = useMatch('/students/add')
+  const { id } = useParams()
+  const queryClient = useQueryClient()
   const isAdd = Boolean(addMatch)
 
-  const { mutate, error, reset, data } = useMutation({
+  const addStudentMutation = useMutation({
     mutationFn: (body: FormStateType) => {
       return addStudent(body)
     }
   })
 
+  useQuery({
+    queryKey: ['StudentInfo', id],
+    queryFn: () => getStudentInfo(id as string),
+    enabled: id !== undefined,
+    onSuccess: (data) => setFormState(data.data)
+  })
+
+  const editStudentMutation = useMutation({
+    mutationFn: (_) => editStudent(id as string, formState as Student),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['StudentInfo', id], data)
+    }
+  })
+
   const errorForm: FormError = useMemo(() => {
+    const error = isAdd ? addStudentMutation.error : editStudentMutation.error
+
     if (isAxiosError<{ error: FormError }>(error) && error.response?.status) {
       return error.response?.data.error
     }
     return null
-  }, [error])
+  }, [addStudentMutation.error, isAdd, editStudentMutation.error])
 
   const handleChange = (name: keyof FormStateType) => (event: React.ChangeEvent<HTMLInputElement>) => {
     setFormState((prev) => ({ ...prev, [name]: event.target.value }))
-    if (data || error) {
-      reset()
+    if (addStudentMutation.data || addStudentMutation.error) {
+      addStudentMutation.reset()
     }
   }
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    mutate(formState, {
-      onSuccess: () => setFormState(initialFormState)
-    })
+    if (isAdd) {
+      addStudentMutation.mutate(formState, {
+        onSuccess: () => {
+          setFormState(initialFormState)
+          toast.success('Add thành công!')
+        }
+      })
+    } else {
+      editStudentMutation.mutate(undefined, {
+        onSuccess: (_) => toast.success('Update thành công!')
+      })
+    }
   }
 
   return (
@@ -227,7 +255,7 @@ export default function AddStudent() {
           type='submit'
           className='w-full rounded-lg bg-blue-700 px-5 py-2.5 text-center text-sm font-medium text-white hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 sm:w-auto'
         >
-          Submit
+          {isAdd ? 'Add' : 'Update'}
         </button>
       </form>
     </div>

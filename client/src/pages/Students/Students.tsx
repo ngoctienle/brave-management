@@ -1,11 +1,12 @@
 import { Fragment } from 'react'
 import { Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'react-toastify'
 import classnames from 'classnames'
 
 import LoadingUI from 'components/LoadingUI'
 
-import { getStudents } from 'apis/students.api'
+import { deleteStudent, getStudents } from 'apis/students.api'
 import { useQueryString } from 'utils/hooks'
 
 const LIMIT = 10
@@ -13,15 +14,28 @@ const LIMIT = 10
 export default function Students() {
   const queryString: { page?: string } = useQueryString()
   const page = Number(queryString.page) || 1
+  const queryClient = useQueryClient()
 
-  const { data, isLoading } = useQuery({
+  const getStudentListQuery = useQuery({
     queryKey: ['StudentList', page],
     queryFn: () => getStudents(page, LIMIT),
     keepPreviousData: true
   })
 
-  const totalStudentCount = Number(data?.headers['x-total-count'] || 0)
+  const deleteStudentMutation = useMutation({
+    mutationFn: (id: number | string) => deleteStudent(id),
+    onSuccess: (_, id) => {
+      toast.success(`Delete thành công student với id là ${id}`)
+      queryClient.invalidateQueries({ queryKey: ['StudentList', page], exact: true })
+    }
+  })
+
+  const totalStudentCount = Number(getStudentListQuery.data?.headers['x-total-count'] || 0)
   const totalPage = Math.ceil(totalStudentCount / LIMIT)
+
+  const handleDelete = (id: number) => {
+    deleteStudentMutation.mutate(id)
+  }
 
   return (
     <Fragment>
@@ -34,7 +48,7 @@ export default function Students() {
           Add Student
         </Link>
       </div>
-      {isLoading ? (
+      {getStudentListQuery.isLoading ? (
         <LoadingUI />
       ) : (
         <Fragment>
@@ -60,7 +74,7 @@ export default function Students() {
                 </tr>
               </thead>
               <tbody>
-                {data?.data.map((student) => (
+                {getStudentListQuery.data?.data.map((student) => (
                   <tr className='border-b bg-white hover:bg-gray-50' key={student.id}>
                     <td className='py-4 px-6'>{student.id}</td>
                     <td className='py-4 px-6'>
@@ -71,10 +85,12 @@ export default function Students() {
                     </th>
                     <td className='py-4 px-6'>{student.email}</td>
                     <td className='py-4 px-6 text-right'>
-                      <Link to='/students/1' className='mr-5 font-medium text-blue-600 hover:underline'>
+                      <Link to={`/students/${student.id}`} className='mr-5 font-medium text-blue-600 hover:underline'>
                         Edit
                       </Link>
-                      <button className='font-medium text-red-600'>Delete</button>
+                      <button className='font-medium text-red-600' onClick={() => handleDelete(student.id)}>
+                        Delete
+                      </button>
                     </td>
                   </tr>
                 ))}
